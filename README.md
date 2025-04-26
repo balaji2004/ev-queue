@@ -2,7 +2,7 @@
 
 A simulation platform for optimizing electric vehicle charging station assignments based on location, wait times, and energy needs.
 
-![EV Charging Queue Optimizer](iimg/image.png)
+![EV Charging Queue Optimizer](img/image.png)
 
 ## Overview
 
