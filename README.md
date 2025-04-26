@@ -1,122 +1,133 @@
-# EV Charging Queue Simulation
+# EV Charging Queue Optimizer
 
-A web-based simulation platform for electric vehicle charging queues and optimization, built with Python, Flask, and interactive visualizations.
+A simulation platform for optimizing electric vehicle charging station assignments based on location, wait times, and energy needs.
+
+![EV Charging Queue Optimizer](https://via.placeholder.com/800x400?text=EV+Charging+Queue+Optimizer)
 
 ## Overview
 
-This application simulates electric vehicles (EVs) traveling through a network of roads, requiring charging at strategically placed charging stations. It uses intelligent optimization algorithms to direct EVs to the most efficient charging stations based on various factors including:
+This project provides a web-based simulation environment to analyze and optimize electric vehicle charging station assignments. The system helps reduce wait times and improve overall charging infrastructure utilization through intelligent routing and queue management algorithms.
 
-- Current battery level
-- Distance to charging stations
-- Queue lengths at stations
-- Charging speeds
-- Route proximity
+**Note**: The core optimization algorithm and methodology implemented in this project are covered by a patent application that has been published but not yet granted. Please see the [License](#license) section for usage restrictions.
 
 ## Features
 
-- **Interactive Map Visualization**: Real-time display of EVs, routes, and charging stations
-- **Dynamic Simulation**: Control the simulation with start/stop/reset features
-- **Charging Optimization**: Smart algorithms to minimize waiting times and optimize charging distribution
-- **Configurable Parameters**: Adjust EV counts, station counts, and simulation settings
-- **Performance Metrics**: Track wait times, queue lengths, and charging station utilization
-- **Route Caching**: Efficient route generation with persistent caching to reduce API calls
+- Real-time simulation of EV movements and charging needs
+- Smart charging station assignment based on:
+  - Current battery level
+  - Distance to charging stations
+  - Station queue lengths
+  - Estimated charging times
+  - Route optimization
+- Interactive map visualization
+- Performance metrics tracking
+- Customizable simulation parameters
 
-## Tech Stack
+## Technology Stack
 
 - **Backend**: Python, Flask
 - **Frontend**: HTML, CSS, JavaScript, Chart.js
-- **Mapping**: Google Maps API
+- **Maps API**: Google Maps Platform
 - **Data Processing**: NumPy
 
 ## Installation
 
-### Prerequisites
-
-- Python 3.7 or higher
-- Google Maps API Key
-
-### Setup
-
 1. Clone the repository:
-   ```bash
-   git clone https://github.com/yourusername/ev-queue-simulation.git
-   cd ev-queue-simulation
-   ```
+```bash
+git clone https://github.com/yourusername/ev-charging-queue-optimizer.git
+cd ev-charging-queue-optimizer
+```
 
-2. Create a virtual environment and activate it:
-   ```bash
-   python -m venv venv
-   # On Windows
-   venv\Scripts\activate
-   # On macOS/Linux
-   source venv/bin/activate
-   ```
+2. Install the required dependencies:
+```bash
+pip install -r requirements.txt
+```
 
-3. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
+3. Create a `config.py` file in the root directory with your Google Maps API key and other settings:
+```python
+# API Keys
+GOOGLE_MAPS_API_KEY = "your_google_maps_api_key"
 
-4. Create a `config.py` file with your Google Maps API key:
-   ```python
-   GOOGLE_MAPS_API_KEY = "your_google_maps_api_key"
-   HOST = "0.0.0.0"
-   PORT = 5000
-   DEBUG = True
-   TIME_STEP_SECONDS = 60  # Simulation time step in seconds
-   CHARGE_THRESHOLD = 0.2  # Battery level threshold for charging
-   OPTIMIZATION_INTERVAL = 10  # Run optimization every N steps
-   ```
+# Server settings
+HOST = "127.0.0.1"
+PORT = 5000
+DEBUG = True
+
+# Simulation settings
+TIME_STEP_SECONDS = 60  # Each simulation step represents 60 seconds
+OPTIMIZATION_INTERVAL = 10  # Run optimization every 10 steps
+CHARGE_THRESHOLD = 0.3  # Start seeking charging when battery at 30%
+```
 
 ## Usage
 
 1. Start the server:
-   ```bash
-   python app.py
-   ```
+```bash
+python app.py
+```
 
-2. Access the web interface at http://localhost:5000
+2. Open a web browser and navigate to `http://127.0.0.1:5000`
 
-### Command Line Arguments
+3. Use the controls in the interface to:
+   - Start/stop the simulation
+   - Adjust simulation speed
+   - Reset the simulation
+   - Generate new data with custom parameters
 
-- `--no-cache`: Disable data caching
-- `--clear-cache`: Clear existing cache before starting
+## Simulation Controls
+
+- **Start Simulation**: Begin the simulation with the current parameters
+- **Stop Simulation**: Pause the current simulation
+- **Reset**: Reset the simulation to its initial state
+- **Speed**: Adjust the simulation speed (1x-10x)
+- **Generate New Data**: Create a new simulation with customized parameters:
+  - Number of EVs
+  - Number of charging stations
+  - Number of geographic nodes
+  - Number of routes
+
+## Optimization Algorithm
+
+The core optimization algorithm (implemented in `models/optimization.py`) evaluates multiple factors to assign EVs to optimal charging stations:
+
+1. **Accessibility**: Determines if an EV can reach a station with current battery
+2. **Route Proximity**: Prioritizes stations that are close to the EV's planned route
+3. **Queue Length**: Considers current waiting times at each station
+4. **Charging Time**: Calculates the time needed to charge based on current SoC and energy needs
+5. **Total Time Cost**: Combines travel time, wait time, and charge time for overall optimization
 
 ## Project Structure
 
-- `app.py`: Main Flask application
-- `models/`: Core simulation classes
-  - `ev.py`: Electric vehicle model
-  - `station.py`: Charging station model
-  - `simulation.py`: Main simulation engine
-  - `optimization.py`: Charging assignment algorithms
-  - `maps_service.py`: Geospatial services and route handling
-- `utils/`: Helper utilities
-  - `data_generator.py`: Synthetic data generation
-- `static/`: Frontend assets
-  - `js/`: JavaScript files
-  - `css/`: CSS styles
-- `templates/`: HTML templates
-
-## Caching System
-
-The simulation implements a multi-level caching system to improve performance:
-
-1. **Route Caching**: Stores routes between locations to reduce API calls
-2. **Node Caching**: Preserves generated location nodes between runs
-3. **Persistent Storage**: Saves cache to disk to retain data between app restarts
-
-Cache files are stored as `.pkl` files in the project root directory.
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
+```
+├── app.py                  # Main Flask application
+├── config.py               # Configuration settings
+├── models/
+│   ├── ev.py              # Electric vehicle model
+│   ├── station.py         # Charging station model
+│   ├── simulation.py      # Simulation engine
+│   ├── optimization.py    # Charging assignment algorithm
+│   └── maps_service.py    # Google Maps integration
+├── static/
+│   ├── css/               # Stylesheets
+│   └── js/                # Client-side scripts
+├── templates/
+│   └── index.html         # Main UI template
+└── utils/
+    └── data_generator.py  # Synthetic data generation
+```
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under a custom license - see the [LICENSE](LICENSE) file for details.
+
+**Important**: The core optimization methodology and algorithms implemented in this project are subject to a pending patent. The code is provided for educational and research purposes only. Commercial use or implementation of the optimization algorithm requires explicit permission.
 
 ## Acknowledgments
 
 - Google Maps Platform for geospatial services
-- Chart.js for visualization components 
+- Chart.js for visualization components
+- Flask community for the web framework
+
+## Contact
+
+For inquiries regarding licensing or commercial use, please contact [your-email@example.com].
