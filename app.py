@@ -78,6 +78,12 @@ def get_optimization_logs():
     logs = simulation.get_optimization_logs()
     return jsonify({'logs': logs})
 
+@app.route('/api/ev/journey-log/<ev_id>')
+def get_ev_journey_log(ev_id):
+    """Get detailed journey log for a specific EV"""
+    journey_log = simulation.get_ev_journey_log(ev_id)
+    return jsonify({'ev_id': ev_id, 'journey_log': journey_log})
+
 @app.route('/api/stations')
 def get_stations():
     """Get all charging stations"""

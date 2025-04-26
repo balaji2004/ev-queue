@@ -46,6 +46,10 @@
                         <div class="legend-color" style="background-color: #4CAF50;"></div>
                         <span>EV (Charging)</span>
                     </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #FF9800;"></div>
+                        <span>EV (Abandoned)</span>
+                    </div>
                 </div>
             </div>
             
@@ -86,6 +90,10 @@
                         <div id="completionRate" class="metric-value">0%</div>
                     </div>
                     <div class="metric">
+                        <div class="metric-name">Abandoned Rate:</div>
+                        <div id="abandonedRate" class="metric-value">0%</div>
+                    </div>
+                    <div class="metric">
                         <div class="metric-name">Optimization Time:</div>
                         <div id="optimizationTime" class="metric-value">0ms</div>
                     </div>
@@ -98,6 +106,19 @@
                     </div>
                     <div class="chart-container">
                         <canvas id="queueLengthChart"></canvas>
+                    </div>
+                </div>
+                
+                <div class="panel">
+                    <h3>EV Journey Timeline</h3>
+                    <div class="form-group">
+                        <label for="evSelector">Select EV:</label>
+                        <select id="evSelector" style="width: 100%; padding: 8px; margin-bottom: 10px;"></select>
+                    </div>
+                    <div class="journey-logs-container">
+                        <div id="journeyTimeline" class="timeline">
+                            <p class="no-ev-selected">Select an EV to view its journey timeline.</p>
+                        </div>
                     </div>
                 </div>
                 
@@ -117,6 +138,7 @@
     <script src="{{ url_for('static', filename='js/map.js') }}"></script>
     <script src="{{ url_for('static', filename='js/charts.js') }}"></script>
     <script src="{{ url_for('static', filename='js/logs.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/journey.js') }}"></script>
     <script src="https://maps.googleapis.com/maps/api/js?key={{ api_key }}&callback=initMap" async defer></script>
 </body>
 </html>

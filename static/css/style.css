@@ -128,7 +128,7 @@ header h1 {
     font-size: 14px;
 }
 
-input[type="number"], input[type="range"] {
+input[type="number"], input[type="range"], select {
     width: 100%;
     padding: 8px;
     border: 1px solid #ddd;
@@ -216,4 +216,105 @@ button:disabled {
 #optimizationLogs {
     white-space: pre-wrap;
     word-break: break-word;
+}
+
+/* Journey timeline */
+.journey-logs-container {
+    height: 300px;
+    overflow-y: auto;
+    background-color: #f9f9f9;
+    padding: 10px;
+    border-radius: 4px;
+    border: 1px solid #eee;
+}
+
+.timeline {
+    position: relative;
+    padding: 0 0 0 30px;
+}
+
+.timeline:before {
+    content: '';
+    position: absolute;
+    left: 10px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: #ddd;
+}
+
+.timeline-event {
+    position: relative;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #eee;
+}
+
+.timeline-event:before {
+    content: '';
+    position: absolute;
+    left: -25px;
+    top: 5px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #4CAF50;
+}
+
+.timeline-event.event-charging:before {
+    background: #4CAF50;
+}
+
+.timeline-event.event-moved:before {
+    background: #2196F3;
+}
+
+.timeline-event.event-warning:before {
+    background: #FFC107;
+}
+
+.timeline-event.event-error:before {
+    background: #F44336;
+}
+
+.timeline-event.event-info:before {
+    background: #607D8B;
+}
+
+.timeline-event.event-abandoned:before {
+    background: #FF9800;
+}
+
+.event-time {
+    font-size: 12px;
+    color: #777;
+    margin-bottom: 5px;
+}
+
+.event-title {
+    font-weight: bold;
+    margin-bottom: 5px;
+    font-size: 14px;
+}
+
+.event-details {
+    font-size: 13px;
+    margin-left: 10px;
+}
+
+.event-detail {
+    display: flex;
+    justify-content: space-between;
+}
+
+.event-detail-label {
+    font-weight: bold;
+    margin-right: 10px;
+}
+
+.no-ev-selected {
+    font-style: italic;
+    color: #777;
+    text-align: center;
+    margin-top: 20px;
 }

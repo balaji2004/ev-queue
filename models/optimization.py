@@ -42,16 +42,17 @@ def optimize_charging(evs, stations):
         
     Returns:
         dict: Mapping of EV IDs to assigned station IDs
-        list: Logs from the optimization process
+        list: List of EV IDs that could not be assigned (emergency)
     """
     if not evs or not stations:
         optimization_logger.info(f"No optimization needed: EVs={len(evs)}, Stations={len(stations)}")
-        return {}
+        return {}, []
         
     start_time = time.time()
     optimization_logger.info(f"Starting optimization for {len(evs)} EVs and {len(stations)} stations")
     
     assignments = {}
+    abandoned_evs = []
     
     try:
         for ev in evs:
@@ -86,7 +87,8 @@ def optimize_charging(evs, stations):
                 optimization_logger.info(f"Found {len(reachable_stations)} reachable stations for EV {ev.id}")
                 
                 if not reachable_stations:
-                    optimization_logger.warning(f"No reachable stations for EV {ev.id}!")
+                    optimization_logger.warning(f"No reachable stations for EV {ev.id}! Marking as abandoned.")
+                    abandoned_evs.append(ev.id)
                     continue
                 
                 # Sort by preference: first on-route stations, then others
@@ -167,9 +169,15 @@ def optimize_charging(evs, stations):
                     
                     optimization_logger.info(f"Assigned EV {ev.id} to station {best_station['station_id']} "
                                 f"with total time: {best_station['total_time']:.1f}s")
+                else:
+                    # No valid scores - mark as abandoned
+                    optimization_logger.warning(f"No valid station scores for EV {ev.id}! Marking as abandoned.")
+                    abandoned_evs.append(ev.id)
             except Exception as ev_error:
                 optimization_logger.error(f"Error optimizing for EV {ev.id}: {ev_error}")
                 optimization_logger.error(traceback.format_exc())
+                # Mark as abandoned due to error
+                abandoned_evs.append(ev.id)
                 continue
     except Exception as e:
         optimization_logger.error(f"Critical optimization error: {e}")
@@ -179,4 +187,7 @@ def optimize_charging(evs, stations):
     optimization_logger.info(f"Optimization completed in {optimization_time:.3f} seconds")
     optimization_logger.info(f"Assigned {len(assignments)} EVs out of {len(evs)}")
     
-    return assignments
+    if abandoned_evs:
+        optimization_logger.warning(f"{len(abandoned_evs)} EVs abandoned due to unsolvable situations: {abandoned_evs}")
+    
+    return assignments, abandoned_evs

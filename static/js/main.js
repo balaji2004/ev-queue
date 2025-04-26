@@ -20,10 +20,13 @@ const generateBtn = document.getElementById('generateBtn');
 const avgWaitTimeEl = document.getElementById('avgWaitTime');
 const maxQueueLengthEl = document.getElementById('maxQueueLength');
 const completionRateEl = document.getElementById('completionRate');
+const abandonedRateEl = document.getElementById('abandonedRate');
 const optimizationTimeEl = document.getElementById('optimizationTime');
 
 // Initialize the application
 document.addEventListener('DOMContentLoaded', function() {
+    console.log("Main module initializing...");
+    
     // Setup event listeners
     startBtn.addEventListener('click', startSimulation);
     stopBtn.addEventListener('click', stopSimulation);
@@ -33,6 +36,8 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Initial update of simulation state
     updateSimulationState();
+    
+    console.log("Main module initialized");
 });
 
 // Start the simulation
@@ -89,12 +94,25 @@ function resetSimulation() {
             updateSimulationState();
             
             // Reset charts
-            initCharts();
+            if (typeof initCharts === 'function') {
+                initCharts();
+            }
             
             // Clear logs
             const optimizationLogsEl = document.getElementById('optimizationLogs');
             if (optimizationLogsEl) {
                 optimizationLogsEl.textContent = "No optimization logs yet.";
+            }
+            
+            // Clear journey timeline
+            const journeyTimeline = document.getElementById('journeyTimeline');
+            if (journeyTimeline) {
+                journeyTimeline.innerHTML = '<p class="no-ev-selected">Select an EV to view its journey timeline.</p>';
+            }
+            
+            // Reset EV selector and update with new data
+            if (typeof updateEVSelector === 'function') {
+                updateEVSelector();
             }
         }
     })
@@ -136,10 +154,14 @@ function generateNewData() {
     .then(data => {
         if (data.success) {
             // Update map with new data
-            updateMap();
+            if (typeof updateMap === 'function') {
+                updateMap();
+            }
             
             // Reset charts
-            initCharts();
+            if (typeof initCharts === 'function') {
+                initCharts();
+            }
             
             // Update state immediately
             updateSimulationState();
@@ -148,6 +170,11 @@ function generateNewData() {
             const optimizationLogsEl = document.getElementById('optimizationLogs');
             if (optimizationLogsEl) {
                 optimizationLogsEl.textContent = "No optimization logs yet.";
+            }
+            
+            // Reset journey view
+            if (typeof updateEVSelector === 'function') {
+                updateEVSelector();
             }
         }
     })
@@ -165,15 +192,22 @@ function updateSimulationState() {
         }
         
         // Update map
-        updateMapMarkers(data.evs, data.stations);
+        if (typeof updateMapMarkers === 'function') {
+            updateMapMarkers(data.evs, data.stations);
+        }
         
         // Update metrics
         updateMetrics(data.metrics);
         
         // Update charts every 5 state updates to avoid performance issues
         stateUpdateCounter++;
-        if (stateUpdateCounter % 5 === 0) {
+        if (stateUpdateCounter % 5 === 0 && typeof updateCharts === 'function') {
             updateCharts(data);
+        }
+        
+        // Update EV selector and journey timeline occasionally
+        if (stateUpdateCounter % 20 === 0 && typeof updateEVSelector === 'function') {
+            updateEVSelector();
         }
     })
     .catch(error => console.error('Error updating simulation state:', error));
@@ -192,6 +226,10 @@ function updateMetrics(metrics) {
     // Completion rate as percentage
     const completionPercent = (metrics.completion_rate * 100).toFixed(1);
     completionRateEl.textContent = `${completionPercent}%`;
+    
+    // Abandoned rate as percentage
+    const abandonedPercent = (metrics.abandoned_rate * 100).toFixed(1);
+    abandonedRateEl.textContent = `${abandonedPercent}%`;
     
     // Optimization time in milliseconds
     optimizationTimeEl.textContent = `${(metrics.optimization_time * 1000).toFixed(0)}ms`;

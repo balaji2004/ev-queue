@@ -19,6 +19,7 @@ class Simulation:
             'max_queue_length': 0,
             'station_utilization': {},
             'completion_rate': 0,
+            'abandoned_rate': 0,  # Added metric for abandoned EVs
             'optimization_time': 0
         }
         self.step_history = []
@@ -65,45 +66,46 @@ class Simulation:
         try:
             # Update EVs
             for ev in self.evs:
-                prev_position = ev.current_position
-                prev_index = ev.route_index
-                
-                if not (ev.charging or ev.in_queue):
-                    ev.move(self.time_step)
+                if not ev.abandoned:  # Skip abandoned EVs
+                    prev_position = ev.current_position
+                    prev_index = ev.route_index
                     
-                # Monitor for stalled EVs (not moving, not charging, not in queue, not completed)
-                if (not ev.trip_completed and 
-                    not ev.charging and 
-                    not ev.in_queue and 
-                    prev_position == ev.current_position and 
-                    prev_index == ev.route_index):
-                    
-                    # Initialize or increment stall counter
-                    if ev.id not in self.stalled_positions:
-                        self.stalled_positions[ev.id] = {'position': prev_position, 'count': 1}
-                    else:
-                        self.stalled_positions[ev.id]['count'] += 1
-                    
-                    # If stalled for too long, reset route index or increase battery
-                    if self.stalled_positions[ev.id]['count'] > 10:  # Stalled for 10 steps
-                        if ev.soc < 0.1:
-                            # If battery is low, boost it to continue journey
-                            ev.soc = min(ev.soc + 0.2, 0.5)  # Boost to at least 50% if very low
-                            print(f"Boosted battery for stalled EV {ev.id}: {ev.soc}")
+                    if not (ev.charging or ev.in_queue):
+                        ev.move(self.time_step)
                         
-                        # Reset stall counter
-                        self.stalled_positions[ev.id]['count'] = 0
-                else:
-                    # Reset stall counter if moving
-                    if ev.id in self.stalled_positions:
-                        del self.stalled_positions[ev.id]
+                    # Monitor for stalled EVs (not moving, not charging, not in queue, not completed)
+                    if (not ev.trip_completed and 
+                        not ev.charging and 
+                        not ev.in_queue and 
+                        prev_position == ev.current_position and 
+                        prev_index == ev.route_index):
+                        
+                        # Initialize or increment stall counter
+                        if ev.id not in self.stalled_positions:
+                            self.stalled_positions[ev.id] = {'position': prev_position, 'count': 1}
+                        else:
+                            self.stalled_positions[ev.id]['count'] += 1
+                        
+                        # If stalled for too long, reset route index or increase battery
+                        if self.stalled_positions[ev.id]['count'] > 10:  # Stalled for 10 steps
+                            if ev.soc < 0.1:
+                                # If battery is low, boost it to continue journey
+                                ev.soc = min(ev.soc + 0.2, 0.5)  # Boost to at least 50% if very low
+                                print(f"Boosted battery for stalled EV {ev.id}: {ev.soc}")
+                            
+                            # Reset stall counter
+                            self.stalled_positions[ev.id]['count'] = 0
+                    else:
+                        # Reset stall counter if moving
+                        if ev.id in self.stalled_positions:
+                            del self.stalled_positions[ev.id]
             
             # Update stations
             for station in self.stations:
                 station.update(self.time_step)
             
             # Find EVs that need charging
-            evs_needing_charge = [ev for ev in self.evs if ev.needs_charging(config.CHARGE_THRESHOLD)]
+            evs_needing_charge = [ev for ev in self.evs if not ev.abandoned and ev.needs_charging(config.CHARGE_THRESHOLD)]
             
             # Run optimization if needed
             if (len(evs_needing_charge) > 0 and
@@ -131,8 +133,8 @@ class Simulation:
         try:
             start_time = time.time()
             
-            # Run optimizer
-            assignments = optimize_charging(evs_needing_charge, self.stations)
+            # Run optimizer - now returns assignments and abandoned EVs
+            assignments, abandoned_evs = optimize_charging(evs_needing_charge, self.stations)
             
             # Record optimization time
             optimization_time = time.time() - start_time
@@ -151,6 +153,10 @@ class Simulation:
                             # Add EV to station queue
                             station.add_to_queue(ev)
                             break
+                elif ev.id in abandoned_evs:
+                    # Mark EV as abandoned
+                    ev.abandon("No reachable charging station with current battery")
+                    print(f"EV {ev.id} abandoned due to unsolvable charging situation")
         except Exception as e:
             print(f"Optimization error: {e}")
             self.optimization_logs.append(f"Optimization error: {e}")
@@ -165,12 +171,16 @@ class Simulation:
         current_max_queue = max(len(station.queue) for station in self.stations)
         
         completed_trips = sum(1 for ev in self.evs if ev.trip_completed)
+        abandoned_evs = sum(1 for ev in self.evs if ev.abandoned)
+        
         completion_rate = completed_trips / len(self.evs) if len(self.evs) > 0 else 0
+        abandoned_rate = abandoned_evs / len(self.evs) if len(self.evs) > 0 else 0
         
         # Update metrics dict
         self.metrics['average_wait_time'] = total_wait_time / evs_with_wait if evs_with_wait > 0 else 0
         self.metrics['max_queue_length'] = current_max_queue  # Use current maximum
         self.metrics['completion_rate'] = completion_rate
+        self.metrics['abandoned_rate'] = abandoned_rate
         
         # Station utilization
         for station in self.stations:
@@ -210,6 +220,13 @@ class Simulation:
         """Get current optimization logs"""
         return self.optimization_logs
     
+    def get_ev_journey_log(self, ev_id):
+        """Get journey log for a specific EV"""
+        for ev in self.evs:
+            if ev.id == ev_id:
+                return ev.journey_log
+        return []
+    
     def reset(self):
         """Reset simulation to initial state"""
         self.stop()
@@ -224,6 +241,16 @@ class Simulation:
             ev.assigned_station = None
             ev.waiting_time = 0
             ev.trip_completed = False
+            ev.abandoned = False
+            ev.journey_log = []
+            # Record initialization
+            ev._log_event("Initialized", {
+                "origin_node": f"Node at {ev.origin}",
+                "destination_node": f"Node at {ev.destination}",
+                "battery": f"{ev.soc * 100:.1f}%",
+                "total_distance": ev.calculate_total_route_distance(),
+                "battery_required": f"{ev.calculate_energy_for_total_route() / ev.battery_capacity * 100:.1f}%"
+            })
         
         # Reset stations
         for station in self.stations:
